@@ -1,0 +1,17 @@
+{
+  "live-steam-guardrails": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": ".*(read|view|edit|write|replace).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ./hooks/pre_tool_guard.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

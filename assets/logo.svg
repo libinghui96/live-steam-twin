@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect x="20" y="20" width="216" height="216" rx="44" fill="#141821" stroke="#d49b38" stroke-width="8"/>
+  <!-- Boxpok Driving Wheel -->
+  <circle cx="116" cy="140" r="64" fill="none" stroke="#e5e9f0" stroke-width="12"/>
+  <circle cx="116" cy="140" r="20" fill="#d49b38"/>
+  <circle cx="116" cy="96" r="9" fill="#5e81ac"/>
+  <circle cx="160" cy="140" r="9" fill="#5e81ac"/>
+  <circle cx="116" cy="184" r="9" fill="#5e81ac"/>
+  <circle cx="72" cy="140" r="9" fill="#5e81ac"/>
+  <!-- Connecting Rod -->
+  <rect x="112" y="166" width="96" height="14" rx="7" fill="#eceff4" stroke="#2e3440" stroke-width="3"/>
+  <circle cx="198" cy="173" r="6" fill="#d49b38"/>
+  <!-- Live Steam Plume & Flame -->
+  <path d="M168 96 C168 68, 194 64, 192 40 C212 58, 218 84, 194 104 Z" fill="#bf616a"/>
+  <path d="M180 98 C180 78, 194 76, 193 60 C203 72, 206 88, 192 102 Z" fill="#ebcb8b"/>
+  <circle cx="72" cy="62" r="14" fill="#88c0d0" opacity="0.85"/>
+  <circle cx="96" cy="52" r="18" fill="#eceff4" opacity="0.90"/>
+  <circle cx="124" cy="58" r="12" fill="#88c0d0" opacity="0.80"/>
+</svg>

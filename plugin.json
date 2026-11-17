@@ -1,0 +1,18 @@
+{
+  "name": "live-steam-twin",
+  "displayName": "Live-Steam Locomotive Digital Twin Kit",
+  "version": "1.0.0",
+  "description": "End-to-end 6-stage engineering methodology, 27-mistake guardrails, reusable OpenCV/build123d/MuJoCo/PINO toolkits, and Ollama bonsai-2:27b semantic auditor for reconstructing 1:1 live-steam locomotives from scanned PDFs.",
+  "logo": "assets/logo.svg",
+  "author": "libinghui",
+  "homepage": "https://github.com/libinghui96/live-steam-twin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libinghui96/live-steam-twin.git"
+  },
+  "suggestedPrompts": [
+    "Initialize a new live-steam locomotive digital twin project from scanned assembly PDFs",
+    "Run multi-drawing cross-verification and Bonsai semantic audit on BOM and valve orientations",
+    "Verify 100% single-solid STL watertightness, 360-deg clearance, and cross-body port mating"
+  ]
+}
