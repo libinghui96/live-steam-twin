@@ -344,15 +344,16 @@
 
 ---
 
-### 失误 31：高功耗多核工作站重任务并发与后台本地 LLM 空载轮询叠加触发过热/OCP 断电关机，以及四层热安全与功耗护栏（`sim/hw_guard.py`）
-- **故障现象**：在连续运行多核 CAD 布尔、三维净空扫描与 CUDA 训练期间，工作站发生硬件保护断电关机。
-- **系统日志与硬件寄存器根因取证**：
-  1. **BIOS 解锁功耗墙 + 双芯瞬态峰值叠加**：`/sys/class/powercap/intel-rapl:0` 显示主板默认将 `Intel Core i9-12900K`（24 线程）设为无上限 `PL1 = PL2 = 4095 W`，叠加 `NVIDIA RTX 5080` 默认 `360 W` TDP，当 24 核 CPU 满载与 GPU CUDA/LLM 同时冲顶时整机瞬态功耗突破 `700W+`；
-  2. **后台 `BonsaiCopilotL3` 缺失脏标志引发 24/7 空载满频唤醒 `Ollama` 27B 大模型**：`journalctl -b -1` 抓获断电前 `1 秒`（`14:07:52`）后台 `gpu_3d_server` 正好向本地 `Ollama` 发起第 `146,506` 次 `bonsai-2:27b` 推理请求！根因是 `_latest_payload` 从未被标记已消费（缺失 `_payload_dirty`），导致即使 **0 个浏览器客户端连接**、物理状态毫无变化，后台线程仍每 `3s` 无休止拉满 RTX 5080 跑 27B 大模型，与批处理重任务正面撞车。
-- **四层稳态防护强制规范**：
-  1. **事件驱动 + 遥测签名去重唤醒 L3 大模型**：`sim/bonsai_copilot.py` 必须检查 `_payload_dirty` 与关键物理量量化签名（无客户端连接或稳态无显著变化时 **0.00 Hz 零推理唤醒**，最小间隔 `>= 12s`）；
-  2. **零 `sudo` 微秒级硬件护栏（`sim/hw_guard.py`）**：所有批处理与门禁脚本入口自动调用 `apply_cpu_thread_and_nice_caps(max_threads=8, nice_delta=5)` 与 `stop_background_gpu_server_for_heavy_job()`（严禁后台常驻 GPU 推流与离线重计算双倍叠加！），并通过直读内核 `coretemp` 与 `libnvidia-ml.so.1` 监控温度/功耗，超阈值自动插入同步冷却窗口（实测跑完 21 道全量门禁后 `CPU = 63°C, GPU = 48°C, 89.8W`）；
-  3. **实时推流帧率与宿主机硬件功耗锁双保险**：`gpu_3d_server` 默认运行在甜点 `36 FPS`；同时沉淀 `scripts/setup_host_power_guard.sh`（支持 `sudo bash scripts/setup_host_power_guard.sh --persist` 一键将 `i9-12900K` 锁定于 `PL1=125W / PL2=165W`、`RTX 5080` 锁定于 `260W` 跨重启永久生效）。
+### 失误 31：ASUS Z690 主板 `5.40 GHz` 单核超频（`CPU 8 / Core 16` Vdroop 崩核）+ 实时推流占空比过载触发整机硬重启及五层稳态护栏（`sim/hw_guard.py`）
+- **故障现象**：多核满载批处理在 `61°C` 低温下通过，但启动实时交互仿真运行约 `15~20` 分钟后，工作站突然失联并发生无内核 Panic 日志的瞬时硬重启（`journald: system.journal corrupted or uncleanly shut down`，BIOS `66s` 后自动重引导）。
+- **系统日志与硅片级硬件寄存器取证（`/var/log/kern.log*` + `ACPI BERT` + `cpufreq`）**：
+  1. **非过热关机，而是 `ACPI BERT` 记录的 CPU/SoC 致命机器检查硬复位**：ROG 龙神水冷液温仅 `27.5°C`、CPU `< 61°C`、GPU `< 49°C`；而 `/var/log/kern.log` 与 `kern.log.4.gz` 明确抓获 UEFI `BERT: [Hardware Error]: Total records found: 1`（`Firmware Error Record Type: SOC Firmware Error Record Type2, severity: fatal`）；
+  2. **真凶锁定为 `ASUS ROG MAXIMUS Z690 HERO`（`BIOS 1720`）对 `i9-12900K` 优选核 `Core 16`（逻辑核 `CPU 8 / CPU 9`）的 `5.40 GHz` 激进超频**：`i9-12900K` 官方最高睿频规范为 **`5.20 GHz`（`5,200,000 kHz`）**，但主板 AI Overclocking 将 `cpu4-5 / 8-11` 超频至 **`5.40 GHz`（`+200 MHz`）** 且解锁 `PL1 = PL2 = 4095 W`。多核重任务因触发全核降频（`~4.90 GHz`）反而稳定；而单主线程高频脉冲仿真被 Linux HWP 优先调度至 `CPU 8` 反复冲顶 `5.40 GHz`，叠加 `RTX 5080`（`360W` 未锁、`Persistence Mode` 关闭、`PCIe Gen1 <-> Gen5` 跳变）瞬态电流冲击引发 `Vdroop` 欠压翻转——`kern.log` 在同日两次精确抓获 **`CPU 8`（`core 16`）** 独有的位翻转崩溃（`00:21:36 CPU: 8 BUG: kernel NULL pointer dereference at insn_decode_mmio` 与 `12:05:29 libpython3.11.so segfault likely on CPU 8 (core 16, socket 0)`）！
+  3. **推流单帧过载与后台 `BonsaiCopilotL3` 并发助推**：此前 `cfd_subdiv=12` 每帧执行近 5 次 574 万体素 3D 求解及多次 `.item()` 同步，使单帧耗时（`83.5 ms`）超出帧周期（`28 ms`），导致主线程以 `96%` 占空比死顶 `CPU 8`；同时未执行 `sudo` 前外部系统服务 `ollama` 亦未绑核。
+- **五层稳态防护强制规范**：
+  1. **零 `sudo` 自动隔离 `> 5.20 GHz` 超频风险核（`quarantine_overclocked_cpus`）**：`sim/hw_guard.py` 在所有仿真/脚本入口自动扫描 `scaling_max_freq`，通过 `os.sched_setaffinity(0, safe_cpus)` 物理隔离 `cpu4, 5, 8, 9, 10, 11`（100% 避开故障核 `CPU 8`），并在宿主机未降频前让 `BonsaiCopilotL3` 自动切换为零功耗确定性物理规则引擎，防止唤醒未绑核的外部 `ollama` 守护进程；
+  2. **合并 GPU->CPU 标量同步与实时推流强制冷却占空比**：`thermo_3d_gpu.py` 将所有探针标量合并为单次 `.tolist()` 传输；`gpu_3d_server.py` 采用 `cfd_subdiv=48`、子步 `1 ms` 微平滑、每帧强制 `>= 10 ms` 稳压冷却窗口及 WebSocket `deflate` 压缩（降低 WireGuard/SSH 隧道带宽 65%）；
+  3. **宿主机内核级永久降频稳压脚本（`scripts/setup_host_power_guard.sh`）**：提供 `sudo bash scripts/setup_host_power_guard.sh --persist`，无需进 BIOS 即可将全机 P-Core 最高睿频锁回稳态 `5.00 GHz`（彻底根治 `VS Code / Ollama / Kernel` 在 `CPU 8` 上的 `5.40 GHz` 崩核）、收紧 `RAPL 125W/165W`、开启 `RTX 5080 Persistence Mode + 260W + 2475 MHz` 削峰，并注入 `sshd` `30s` 心跳保活。
 
 ---
 

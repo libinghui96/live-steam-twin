@@ -156,8 +156,8 @@
     },
     {
       "id": 31,
-      "title": "高功耗多核工作站重任务并发与后台本地 LLM 空载轮询叠加触发过热/OCP 断电关机，以及四层热安全与功耗护栏（`sim/hw_guard.py`）",
-      "rule_summary": "四层稳态防护强制规范**： 事件驱动 + 遥测签名去重唤醒 L3 大模型**：`sim/bonsai_copilot.py` 必须检查 `_payload_dirty` 与关键物理量量化签名（无客户端连接或稳态无显著变化时 **0.00 Hz 零推理唤醒**，最小间隔 `>= 12s`）； 零 `sudo` 微秒级硬件护栏（`sim/hw_guard.py`）**：所有批处理与门禁脚本入口自动调用 `apply_cpu_thread_and_nice_caps(max_threads=8, nice_delta=5)` 与 `stop_background_gpu_server_for_heavy_job()`（严禁后台常驻 GPU 推流与离线重计算双倍叠加！），并通过直读内核 `coretemp` 与 `li"
+      "title": "ASUS Z690 主板 `5.40 GHz` 单核超频（`CPU 8 / Core 16` Vdroop 崩核）+ 实时推流占空比过载触发整机硬重启及五层稳态护栏（`sim/hw_guard.py`）",
+      "rule_summary": "五层稳态防护强制规范**： 零 `sudo` 自动隔离 `> 5.20 GHz` 超频风险核（`quarantine_overclocked_cpus`）**：`sim/hw_guard.py` 在所有仿真/脚本入口自动扫描 `scaling_max_freq`，通过 `os.sched_setaffinity(0, safe_cpus)` 物理隔离 `cpu4, 5, 8, 9, 10, 11`（100% 避开故障核 `CPU 8`），并在宿主机未降频前让 `BonsaiCopilotL3` 自动切换为零功耗确定性物理规则引擎，防止唤醒未绑核的外部 `ollama` 守护进程； 合并 GPU->CPU 标量同步与实时推流强制冷却占空比**：`thermo_3d_gpu.py` 将所有探针标量合并为单次 `.t"
     }
   ]
 }
