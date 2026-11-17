@@ -28,16 +28,33 @@ AUDIT_SYSTEM_PROMPT = """你是真蒸汽机车三维多体与热流数字孪生�
 - 若全部核对无矛盾，输出 `[AUDIT-PASS] 未发现与原厂文档矛盾的历史失误模式`。保持简练客观。"""
 
 
+def _build_dynamic_system_prompt() -> str:
+    idx_path = Path(__file__).resolve().parent.parent / "references" / "auto_synced_lessons_index.json"
+    if not idx_path.exists():
+        return AUDIT_SYSTEM_PROMPT
+    try:
+        data = json.loads(idx_path.read_text(encoding="utf-8"))
+        extra = [it for it in data.get("lessons", []) if int(it.get("id", 0)) > 27]
+        if not extra:
+            return AUDIT_SYSTEM_PROMPT
+        lines = ["\n\n此外请同步核查以下从实车项目最新增量同步的失误条目："]
+        for i, it in enumerate(extra, start=9):
+            lines.append(f"{i}. [失误{it['id']}: {it['title']}]：{it.get('rule_summary', '')}")
+        return AUDIT_SYSTEM_PROMPT + "\n".join(lines)
+    except Exception:
+        return AUDIT_SYSTEM_PROMPT
+
+
 def query_ollama(model: str, url: str, user_content: str, timeout_s: float = 120.0) -> str:
     chat_url = url.replace("/api/generate", "/api/chat") if url.endswith("/api/generate") else url
     final_user_msg = (
         f"{user_content}\n\n"
-        "=== 立即执行上述 8 项真蒸汽机车历史失误清单逐条核查（禁止反问需求，直接给出逐项 PASS/RISK 审计结论） ==="
+        "=== 立即执行上述真蒸汽机车历史失误清单逐条核查（禁止反问需求，直接给出逐项 PASS/RISK 审计结论） ==="
     )
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": AUDIT_SYSTEM_PROMPT},
+            {"role": "system", "content": _build_dynamic_system_prompt()},
             {"role": "user", "content": final_user_msg},
         ],
         "stream": False,
