@@ -1,8 +1,8 @@
 {
   "source_repo": "libinghui96/aster-d51-sim",
   "source_file": "docs/LESSONS_LEARNED.md",
-  "total_lessons": 27,
-  "max_lesson_id": 27,
+  "total_lessons": 31,
+  "max_lesson_id": 31,
   "lessons": [
     {
       "id": 1,
@@ -138,6 +138,26 @@
       "id": 27,
       "title": "图像解析中「高阈值白斑外接框阴影截断 + 相机俯视外参未解耦」陷阱——将严格垂直表盘 `PG-ø20`（`0°`）误算为上仰 `38° / 24°`",
       "rule_summary": "修复方案与防再犯铁律（写入 `08_extract_boiler_valves_bom.py` 与 `Gate 20`）**： 禁止使用高亮度阈值 `boundingRect` 推算圆盘倾角**：圆形仪表/法兰/手轮的自动像素测量一律改用 `cv2.HoughCircles` + **圆周四象限径向一阶梯度峰值（`_measure_circle_rim_aspect`）** 提取真实金属外圈直径，彻底免疫内部阴影、指针遮挡与反光；且基准圆搜索窗口与半径范围（`r ∈ [20, 28] px`）必须精准隔离，避免误匹配下方带竖管的非圆形阀体； 同平面基准件差分消元法（Differential Coplanar Reference Calibration）**：从实拍图反推零件倾角时，必须除以**同一平面内已知垂直"
+    },
+    {
+      "id": 28,
+      "title": "图纸与 BOM 多源联立取证的四类隐蔽盲区（爆炸图长 S 引出线空白摆放误读、阀体形态/轴向混淆、原厂 BOM 印刷笔误与干式内火室 `12-4` 盲区）",
+      "rule_summary": "防再犯铁律**： 爆炸图中零件的**页面摆放坐标 ≠ 装配坐标**，必须追踪每条细引出线的真实安装孔落点； 锅炉后封头任何进水/取汽口必须叠加内部火室罩（`12-4`）与烟管剖面校核所连通的真实相区（水空间 / 汽空间 / 干式火室）； 对原厂 BOM 文字建立「图纸引出线 + 装配正文 + 零件尺寸兼容性」三源互审，自动拦截手册印刷笔误。"
+    },
+    {
+      "id": 29,
+      "title": "粗多边形实心圆棒 `.stl` 伪管路 vs 解析曲面 `ISO-10303-21 .step` 母本 + 真壁厚空心圆滑 `.stl` + 7 域三维内腔多相物理",
+      "rule_summary": "工程权衡与三大 OpenCascade 空心建模铁律**： `.step` 解析曲面母本 + 圆滑空心 `.stl` 双轨输出制**：MuJoCo 底层 `stl_decoder` 不直接读取 `.step` 且硬性要求单个 `.stl` 三角面数 `<= 200,000`。因此 `02_build_cad_meshes.py` 统一为全车 **98 个零件**同步导出无限精度解析 B-Rep 母本 `models/step/*.step`（`ISO-10303-21`）与圆滑水密空心 `models/meshes/*.stl`（高曲率管件 `ang_tol = 0.185 rad` 消除棱角，大型钣金外壳设 `stl_tol = 0.085, ang_tol = 0.28` 将单件控制在 `< 140k` 面"
+    },
+    {
+      "id": 30,
+      "title": "安全阀布尔迟滞 `if` 作弊或二次面积比蠕动泄漏 vs 1 比例蓄压环腔（Huddling Chamber）突跳安全阀与第 5 算子 `SafetyValvePopPINO`",
+      "rule_summary": "- **问题剖析**：原厂手册仅给出 `28-6 ×2` 安全阀起跳表压 `4.0 kgf/cm²`、回座 `3.5~3.6 kgf/cm²` 及顶针 `上部の小さな突起`（未绘内部剖面）。若写 `if P > 4.0: open = True elif P < 3.55: open = False` 属于违背第一性原理的布尔作弊；而若仅建普通平阀座或用二次帘口面积比 $(A_1/A_2)^2$ 计算蓄压腔升力，由于 $\\frac{d}{dy}[(A_1(y)/A_2)^2]\\big|_{y=0^+} = 0 < k_s$，阀瓣在 `4.0 kgf/cm²` 只会微张几微米蠕动漏汽（Simmer），无法产生真蒸汽机车干脆的突跳泄压（Pop）与低压回座（Blowdown）。 - **物理机制与永久规范（`Gate"
+    },
+    {
+      "id": 31,
+      "title": "高功耗多核工作站重任务并发与后台本地 LLM 空载轮询叠加触发过热/OCP 断电关机，以及四层热安全与功耗护栏（`sim/hw_guard.py`）",
+      "rule_summary": "四层稳态防护强制规范**： 事件驱动 + 遥测签名去重唤醒 L3 大模型**：`sim/bonsai_copilot.py` 必须检查 `_payload_dirty` 与关键物理量量化签名（无客户端连接或稳态无显著变化时 **0.00 Hz 零推理唤醒**，最小间隔 `>= 12s`）； 零 `sudo` 微秒级硬件护栏（`sim/hw_guard.py`）**：所有批处理与门禁脚本入口自动调用 `apply_cpu_thread_and_nice_caps(max_threads=8, nice_delta=5)` 与 `stop_background_gpu_server_for_heavy_job()`（严禁后台常驻 GPU 推流与离线重计算双倍叠加！），并通过直读内核 `coretemp` 与 `li"
     }
   ]
 }
