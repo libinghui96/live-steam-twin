@@ -1,8 +1,8 @@
 {
   "source_repo": "libinghui96/aster-d51-sim",
   "source_file": "docs/LESSONS_LEARNED.md",
-  "total_lessons": 48,
-  "max_lesson_id": 48,
+  "total_lessons": 51,
+  "max_lesson_id": 51,
   "lessons": [
     {
       "id": 1,
@@ -243,6 +243,21 @@
       "id": 48,
       "title": "透视模式（X-Ray）管壳不透明遮挡煤水车/气缸内管与缺少真实双向流向可视化 vs 全车 35 路半透明管壁 + 多相脉冲内芯 + 100% 物理流量驱动的可逆三维流向箭头",
       "rule_summary": "- **问题现象**：早期 X-Ray 仅将锅炉外壳与煤水车外皮设为半透明，而 `tender_internals`（煤水车内部水箱/醇箱/手摇泵/床下管）、`cab_backhead_plate` 与各铜管外壁仍为 `opacity = 1.0` 不透明金属，遮住了煤水车内管与跨板管道；且缺少全车管道解剖标注与真实流向指示。 - **透视全管网可视化规范（`web/src/fluidShaders.ts` + `Gate 24.6`）**：   - X-Ray 模式下同步将煤水车内胆与全车管壳设为 `opacity = 0.28..0.30, depthWrite = false`，沿精确 CAD 中心线构建覆盖**煤水车内部 7 管（`36-6`, `34-2`, `31-5/31-13`, `34-6×2"
+    },
+    {
+      "id": 49,
+      "title": "仅验证固体水密/单连通（`be == 0, cc == 1`）与端口欧氏距离（`gap <= 0.50 mm`）漏检全车穿墙盲板、布尔回填封堵、跨刚体缩颈与串腔 vs 声明式全车流体网表 + GPU 负空间三维体素 `Fluid-LVS` 四重门禁",
+      "rule_summary": "强制门禁与全车 `Fluid-LVS` 铁律（`configs/d51_fluid_topology.json` + `sim/fluid_topology_lvs.py` + `Gate 25`）**： 凡含多回路管阀系统的数字孪生，必须建立与三维透视管网 **1:1 ID 同构**的声明式流体网表（节点—有向/可逆边—公称内径—互斥隔离腔对—动态阀位），在多体装配世界系下逐件 `torch.maximum` 体素化全体可见实体（含 `mjGEOM_MESH` 与非代理 `Box/Cylinder` 结构件，显式标注多孔渗流灯芯等透水介质）； 每条管道必须同时通过：① **`Zero-Open`（防空气绕流套筒 `r_sleeve < r_od` 内的 6-邻域共面有限体积漫水全贯通）**；② **`Zero"
+    },
+    {
+      "id": 50,
+      "title": "MuJoCo 网格主惯性轴内禀偏置（`mesh_pos / mesh_quat`）导致原生 STL 坐标错位 + 90° 尖角折线裁切圆弧弯头产生假缩颈 + `R2m` 弯道刚性接头插管折死 vs `d.geom_xpos + verts_mj @ d.geom_xmat.T` 重构 + `C¹` 圆弧导角中心线",
+      "rule_summary": "多体装配几何重构与弯道软管铁律**： 在 MuJoCo 任意关节姿态 `qpos` 下重构网格世界坐标时，**必须直接读取 `m.mesh_vert[va:va+vn]`（已处于 geom 局部系）并通过 `verts_w = d.geom_xpos[gid] + verts_mj @ d.geom_xmat[gid].reshape(3,3).T` 变换**，实现全车静态件、连杆滑阀与跨车软管 `< 1e-6 mm` 零误差对齐； LVS 中心线评估前必须按真实弯管半径 `bend_r` 执行三维解析圆弧导角（`_fillet_polyline_3d`），跨车弹性软管采用双端实时悬链线插值，且刚性金属宝塔插嘴伸入软管弯曲段长度须控制在 `<= 1.8 mm`，确保直线与 `R2m` 最小曲线双姿态下 **35"
+    },
+    {
+      "id": 51,
+      "title": "动态配气阀拓扑校核忽略 `t = 0` 华氏恒定先导偏置（Constant Lead）与热流计算同三维管网连通状态脱钩 vs 相位感知动态阀位 `Fluid-LVS` + 35 路实测流导 `G_edge` 零 `if` 双向耦合",
+      "rule_summary": "动态阀位拓扑与物理耦合强制规范（`Gate 25.2–25.3`）**： 对滑阀、柱塞、水槽排水栓（`31-11`）及蓄压突跳安全阀（`28-6`）执行动态 `Fluid-LVS` 时，必须以真实阀座几何中心 `q_valve_center` 为基准施加闭锁位（验证双进汽口外余面零漏汽遮断 + 蒸汽室⊥排气道零串通）与正反偏移位（验证 `1-6` 内部 `+1.90 mm` 高 D 型拱腔精确跨接前/后气缸道与中央排汽道）； 将 `Fluid-LVS` 沿程实测积分导出的无量纲水力流导向量 `edge_conductances[35]` 直接注入 `thermo_1d.py`、`thermo_3d_gpu.py` 及 Web `fluidShaders.ts`，使任何三维管道一旦发生堵塞或缩颈，对应回路的蒸汽/"
     }
   ]
 }

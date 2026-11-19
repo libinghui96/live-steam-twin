@@ -28,3 +28,13 @@ Activate this skill when building or calibrating `thermo_1d.py`, `thermo_3d_gpu.
 ## 3. CPU-Only GitHub Actions CI Compatibility (Mistake 25)
 - Always install CPU PyTorch (`pip install torch --index-url https://download.pytorch.org/whl/cpu`) in `.github/workflows/*.yml`.
 - Cache static STL voxel grids by content hash (`blake2b`), and in long boil-off gates check `torch.cuda.is_available()` (run full 3D PDE steps on GPU; run 1D core + initial/final 3D voxel sync check on CPU CI). Always pre-test locally with `CUDA_VISIBLE_DEVICES=""`.
+
+## 4. Full-Vehicle 3D Fluid-LVS Verification ([fluid_topology_lvs.py](./scripts/fluid_topology_lvs.py))
+- Solid-only topology gates (`boundary_edges == 0`, `connected_components == 1`) and port Euclidean proximity (`gap <= 0.50 mm`) **cannot** catch un-drilled multi-wall partitions, boolean re-sealing bugs, chassis/bracket intrusions pinching pipe lumens, or inter-compartment short-circuits!
+- Always author a declarative full-vehicle fluid netlist `configs/<loco>_fluid_topology.json` (enumerating every fluid subnet, chamber node, pipe/valve edge with `spec_id_mm` / `spec_od_mm`, compartment isolation pairs, and dynamic valve `qpos` states) and run [fluid_topology_lvs.py](./scripts/fluid_topology_lvs.py):
+  `python3 ~/.gemini/config/plugins/live-steam-twin/skills/live-steam-03-hybrid-pino-thermo/scripts/fluid_topology_lvs.py --xml models/<loco>_track.xml --topology configs/<loco>_fluid_topology.json --out configs/<loco>_fluid_lvs_report.json`
+- Enforce all 4 LVS invariants across both straight and minimum-curve (`R2m`) postures:
+  1. **`Zero-Open`**: 6-face FVM flood-fill inside wall-bounded inner sleeve (`r_sleeve < r_od` so ambient air outside the pipe can NEVER shortcut a blocked bore!) using per-mesh `torch.maximum` solid union reconstructed directly from MuJoCo `d.geom_xpos + verts_mj @ d.geom_xmat.T` (including visible structural primitives);
+  2. **`Zero-Necking`**: C¹ circular-arc filleted centerline (`_fillet_polyline_3d`) axial-slab hydraulic diameter $d_{\text{eq}}(s) = 2\sqrt{A_{\text{open}}(s)/\pi} \ge d_{\min}$;
+  3. **`Zero-Missing-Wall`**: Pipe-wall annular coverage ratio check preventing deleted/missing pipes in open air from false-passing;
+  4. **`Zero-Short` & Dynamic Valve States**: Hydrostatic port-capped multi-compartment flood-fill (`short_voxels == 0`) + live joint `qpos` valve opening/closing topology verification, exporting `edge_conductances` directly into L1/L2 physics and Web X-Ray flow vectors with zero `if` cheats.
