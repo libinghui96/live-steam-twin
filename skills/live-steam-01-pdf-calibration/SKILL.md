@@ -8,7 +8,13 @@ description: >-
 
 Activate this workflow whenever extracting dimensions, part orientations, valve axes, or piping topologies from scanned assembly PDFs (`イラスト 1..N`), detail sections (`図 x.y`), 1:1 templates, orthogonal photos, and operator manuals (`部品表 / 組立順序 / 試運転`).
 
-## Mandatory 4-Step Calibration Protocol
+## Mandatory 5-Step Calibration & Prior-Sourcing Protocol
+
+0. **Manufacturer Historical Catalog & Gauge-1 Prior Knowledge Lookup (`asterhobby.com/railwayhistory.html` + `aster-manual.pdf`)**:
+   - **Before** modeling any Aster Gauge-1 locomotive, consult the manufacturer's historical specification catalog (`https://www.asterhobby.com/railwayhistory.html` — 110 locomotives from 1975 to 2023) and download linked model-year spec PDFs into `data/raw_pdfs/` to disambiguate generational differences sharing the same road class (e.g., `1986/1992 D51` Watanabe `Mixed Type` boiler vs `2007/2010 JNR D51 Standard` van Riemsdijk `Type "C"` recessed-barrel boiler with separate `SUS304` ceramic-lined dry firebox `12-4`, zero wet copper waterlegs) and exact scale ratio (`1:30` for JNR `1067 mm` Cape-gauge prototypes on `45 mm` track vs `1:32` for `1435 mm` standard gauge).
+   - Enforce the **Two-Tier Truth Hierarchy**:
+     1. **Concrete part dimensions & capacities** MUST anchor to the assembly blueprints (`イラスト 1..N`, standard seal/ring codes such as `PR-15 = 15.0 mm`, `PF3-1.9`, `PN3.2-1`) and operator manual (`取扱説明書`), never overriding exact part fits with rounded brochure numbers;
+     2. **System-level physics & implicit internal mechanisms** (e.g., `Type "C"` dry-liner reradiation + Hausen flue entry heat transfer, `0.50 mm` slide-valve buckle vertical lift overpressure/condensate relief, concealed downward-draining stopped brass whistle two-phase Wood-Kieffer aero-acoustics, Roscoe internal standpipe displacement lubrication, `0.20–0.33` adhesion factor) MUST follow *MANUAL OF ASTER MODEL LIVE STEAM ENGINES* (`aster-manual.pdf`).
 
 1. **Headless Raster Deskew & BOM Extraction (Never `get_drawings()` Alone)**:
    - Scanned assembly PDFs are raster images, not vector CAD (`page.get_drawings()` will return empty/borders only). Render target pages via `pymupdf` (`get_pixmap(dpi=300)`), deskew via Hough line angle on border/track lines, and extract BOM tables & assembly text to structured `.json` first.
