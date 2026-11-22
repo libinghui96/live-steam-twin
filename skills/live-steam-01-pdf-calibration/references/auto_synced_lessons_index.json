@@ -1,8 +1,8 @@
 {
   "source_repo": "libinghui96/aster-d51-sim",
   "source_file": "docs/LESSONS_LEARNED.md",
-  "total_lessons": 67,
-  "max_lesson_id": 67,
+  "total_lessons": 68,
+  "max_lesson_id": 68,
   "lessons": [
     {
       "id": 1,
@@ -338,6 +338,11 @@
       "id": 67,
       "title": "将无管壁开放腔室/车外气体流线误套用实体圆管渲染器（`buildBishopPipeGeometry`）导致“烟管和过热管伸进烟囱并戳出烟囱顶”的严重结构假象，且液体/气体与管内/管外流向符号同质化 vs 硬件管腔边界铁律与「相态 × 管壁约束」四态正交视觉编码规范（`Gate 29.4`）",
       "rule_summary": "硬件管腔边界与「相态 × 管内外」四态正交视觉编码铁律（`Gate 29.4`）**： 硬件管腔几何铁律**：`buildBishopPipeGeometry` 圆管网格**严禁用于任何无管壁开放空间流线**，仅限渲染 `configs/d51_fluid_topology.json` 中真实具备物理管壁的 `38` 路流道；其中 `12-6` 五根烟管严格止于前管板 `X = +92.0 mm`，`17-5` 过热管严格位于 `X <= +123.5 mm, Z <= +58.8 mm`，全车任何硬件管道严禁伸入烟囱（`Z <= +74.0 mm`）！烟室（`X = +92..+158 mm`）必须保持真实空旷腔体，前管板排出的烟气在 `X = +95.5 mm` 自由空间经 `4` 股无管壁流迹汇聚至 `1"
+    },
+    {
+      "id": 68,
+      "title": "套用“无交叉气道标准外进气华氏配气”覆盖 Aster D51 专用的「滞后倾斜回动曲柄 + 顶销接心向棒合并杆 + `1-9` 交叉气道板（Cross-Port Plate）」原厂结构，导致倒车负先导、中立蠕动、月牙槽反车顶死撬轮及 B-Rep 镜像扫掠面数微差 vs 全套连杆与交叉气道 1:1 复原铁律（`Gate 30`）",
+      "rule_summary": "华氏配气与交叉气道 1:1 复原铁律（`Gate 30`）**： 凡真车为内进气活塞阀而模型改用外进气平面滑阀的 Aster 车型（如 JNR D51），必须先查阅 `aster-manual.pdf` `Fig. 30–33` 与本车 `イラスト 1/2/9` 核实是否存在 `1-9` **交叉气道板（Cross-Port Plate）**，并保持 1D 气口面积（`+xv - es` → Head）、3D GPU Domain 4/PINO 符号、WebGL 流道和 `Fluid-LVS` 动态阀态测试四端符号 100% 同构； 倾斜偏心杆布局必须解析求解补偿相位角（`return_crank_phase_deg = +94.64°`）与月牙尾偏角（`exp_link_tail_cant_deg = +3."
     }
   ]
 }
