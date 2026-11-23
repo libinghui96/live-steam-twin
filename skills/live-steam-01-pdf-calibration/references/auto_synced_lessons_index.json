@@ -1,8 +1,8 @@
 {
   "source_repo": "libinghui96/aster-d51-sim",
   "source_file": "docs/LESSONS_LEARNED.md",
-  "total_lessons": 68,
-  "max_lesson_id": 68,
+  "total_lessons": 70,
+  "max_lesson_id": 70,
   "lessons": [
     {
       "id": 1,
@@ -343,6 +343,16 @@
       "id": 68,
       "title": "套用“无交叉气道标准外进气华氏配气”覆盖 Aster D51 专用的「滞后倾斜回动曲柄 + 顶销接心向棒合并杆 + `1-9` 交叉气道板（Cross-Port Plate）」原厂结构，导致倒车负先导、中立蠕动、月牙槽反车顶死撬轮及 B-Rep 镜像扫掠面数微差 vs 全套连杆与交叉气道 1:1 复原铁律（`Gate 30`）",
       "rule_summary": "华氏配气与交叉气道 1:1 复原铁律（`Gate 30`）**： 凡真车为内进气活塞阀而模型改用外进气平面滑阀的 Aster 车型（如 JNR D51），必须先查阅 `aster-manual.pdf` `Fig. 30–33` 与本车 `イラスト 1/2/9` 核实是否存在 `1-9` **交叉气道板（Cross-Port Plate）**，并保持 1D 气口面积（`+xv - es` → Head）、3D GPU Domain 4/PINO 符号、WebGL 流道和 `Fluid-LVS` 动态阀态测试四端符号 100% 同构； 倾斜偏心杆布局必须解析求解补偿相位角（`return_crank_phase_deg = +94.64°`）与月牙尾偏角（`exp_link_tail_cant_deg = +3."
+    },
+    {
+      "id": 69,
+      "title": "轨道跑距失真的七大物理陷阱（硬编码 `8.80 v²` 假风阻、无水乙醇替代工业甲醇、`4-2` 注油器 Hagen-Poiseuille `r⁴/128` 误算与 `3400 min` 假续航、`0.46` 胶轮摩擦、零乏汽背压与平地单机短轨） vs 第一性原理轨道跑距闭环铁律（`Gate 31`）",
+      "rule_summary": "第一性原理轨道跑距仿真铁律（`Gate 31`）**： 严禁在走行部注入超越量纲比例的人造二次方假阻尼；极速、牵引力、空转率、耗醇与耗水必须由锅炉相变、过热压降、`20-7` 喷嘴背压、油膜剪切与 Polach 轮轨蠕滑联合涌现； 里程计必须区分车架三维真实对地弧长 `distance_m` 与动轮踏面滚动弧长 `wheel_roll_m`，并在湿轨大油门下验证真实空转打滑。"
+    },
+    {
+      "id": 70,
+      "title": "超大循环步计算图触发 PyTorch `@torch.jit.script` NNC（`tensorexpr::IRMutator`）指数级符号化死锁卡死、关掉融合器后 `2.5 亿` 次碎核启动拖慢 `100×`、大步长显式孔口过冲/轮轨蠕滑失稳与 `FP32` `ULP` 吞没、以及无界 GPU 体素缓存与后台 `ollama` 显存争用 vs 原生 `@triton.jit` 寄存器驻留混合精度融合核铁律（`Gate 31.4`）",
+      "rule_summary": "GPU 大规模长时程物理仿真核设计铁律（`Gate 31.4`）**： 严禁对超过 50 个算子的时间步循环使用 `@torch.jit.script`**！统一编写**原生 `@triton.jit` CUDA 寄存器驻留融合核**：将每列机车的全部标量状态一次性 `tl.load` 进 SM 寄存器，在寄存器内连续无显存读写推进 `chunk_steps = 8000` 步后再一次性 `tl.store` 写回（编译仅 `~1.3 s` 且自动落盘缓存，RTX 5080 上 `B = 128` 全行程 `43 min` 仿真仅需 `~8.4 s`，达 **`>17,500×` 实时加速**），同时保留同构向量化 `NumPy FP64` 回退核供无 GPU CI 运行； 在 GPU 寄存器核中采用**「`F"
     }
   ]
 }
